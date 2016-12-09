@@ -5,6 +5,10 @@ import csvData from '!raw!./data.csv'; // eslint-disable-line
 
 let startTime;
 
+// TODO: Put into particles-on-map
+// TODO: Time in map - use for throttling -> creating new markers
+//  so positions are actually accurate (get created based on time).
+
 let dataLeft;
 let orderedData;
 const msRepresentingADay = 1000;
@@ -22,6 +26,8 @@ function addData() {
   const dataLeftLength = dataLeft.length;
   const dataToAdd = [];
   for (let x = 0; x < dataLeftLength; x++) {
+    if (x > 3) break; // Throttle data to render
+
     const journey = dataLeft[x];
 
     if (journey.relativeStartTime < scaledTime) dataToAdd.push(journey);
@@ -41,12 +47,17 @@ function addData() {
       orig: journey.orig,
       dest: journey.dest,
       msToTake,
+      realStartMsTime: Date.now(),
     });
   }
 
-  dataLeft = dataLeft.slice(dataToAddLength, dataLeft.length);
+  dataLeft = dataLeft.slice(dataToAddLength);
 
-  // if (dataLeft.length === 0) dataLeft = orderedData; // Loop data
+  if (dataLeft.length < 5) {
+    // Loop data
+    dataLeft = orderedData;
+    startTime = updateTime;
+  }
 }
 
 export default function readData() {
@@ -54,7 +65,7 @@ export default function readData() {
 
   let firstJourneyStartTime;
   orderedData = data
-    .slice(0, 100)
+    // .slice(0, 2000)
     .filter((j, index) => index !== 0)
     .map((journey) => {
       // Parse data
@@ -72,6 +83,7 @@ export default function readData() {
       };
     })
     .sort((a, b) => a.startTime - b.startTime)
+    .slice(10)
     .map((journey, index) => {
       // Calculate relative start times
       if (index === 0) {
@@ -89,6 +101,6 @@ export default function readData() {
     });
   dataLeft = orderedData;
 
-  const updateTime = 50;
+  const updateTime = 100;
   setInterval(addData, updateTime);
 }
